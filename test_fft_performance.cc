@@ -15,7 +15,6 @@ double gettime(void)
     return tv.tv_sec + tv.tv_usec / 1000000.0;
 }
 
-#if 0
 template <typename real_type>
 class FasterFFT
 {
@@ -68,8 +67,8 @@ class FasterFFT
 
                 const complex_type term  = w[i * stride] * z[stride * (2 * i + 1)];
 
-                temp[2 * i + 0] = z[stride * 2 * i] + term;
-                temp[2 * i + 1] = z[stride * 2 * i] - term;
+                temp[i        ] = z[stride * 2 * i] + term;
+                temp[i + n / 2] = z[stride * 2 * i] - term;
 
                 // Note that we can undo the scaling by dividing the 'temp' values by 2, here,
                 // in case of a forward FFT.
@@ -80,11 +79,7 @@ class FasterFFT
 
             for (unsigned i = 0; i < n; ++i)
             {
-                const unsigned j = (i / 2) + (i % 2) * (n / 2);
-
-                assert(j < n);
-
-                z[j * stride] = temp[i];
+                z[i * stride] = temp[i];
             }
 
             // All done.
@@ -95,90 +90,9 @@ class FasterFFT
         complex_type * w;
         unsigned nn;
 };
-#endif
 
 template <typename real_type>
 class FasterFFT2
-{
-    typedef std::complex<real_type> complex_type;
-
-    public:
-
-        FasterFFT(unsigned n) // constructor
-        {
-            nn = n / 2;
-            w = new complex_type[nn];
-
-            for (unsigned i = 0; i < nn; ++i)
-            {
-                const real_type turn = -2.0 * M_PI * i / n;
-                w[i] = std::polar(static_cast<real_type>(1), turn);
-            }
-        }
-
-        ~FasterFFT()
-        {
-            delete [] w;
-        }
-
-        void apply(complex_type * z, unsigned n, unsigned stride)
-        {
-            if (n == 1)
-            {
-                return;
-            }
-
-            assert (n % 2 == 0); // verify that n is even.
-
-            // Do sub-FFTs on even / odd entries.
-
-            this->apply(direction, z         , n / 2, 2 * stride);
-            this->apply(direction, z + stride, n / 2, 2 * stride);
-
-            // Now, we need to combine the values of the sub-FFTs.
-
-            // First, allocate temp[] working space.
-
-            complex_type temp[n];
-
-            // Calculate temp[] values as sum/difference of sub-FFT values.
-
-            for (unsigned i = 0; i < n / 2; ++i)
-            {
-                assert(i * stride < nn);
-
-                const complex_type term  = w[i * stride] * z[stride * (2 * i + 1)];
-
-                temp[2 * i + 0] = z[stride * 2 * i] + term;
-                temp[2 * i + 1] = z[stride * 2 * i] - term;
-
-                // Note that we can undo the scaling by dividing the 'temp' values by 2, here,
-                // in case of a forward FFT.
-            }
-
-            // Rearrange the temp[] entries into the z[] array.
-            // This is the 'butterfly' step.
-
-            for (unsigned i = 0; i < n; ++i)
-            {
-                const unsigned j = (i / 2) + (i % 2) * (n / 2);
-
-                assert(j < n);
-
-                z[j * stride] = temp[i];
-            }
-
-            // All done.
-        }
-
-    private:
-
-        complex_type * w;
-        unsigned nn;
-};
-
-template <typename real_type>
-class FasterFFT3
 {
     typedef std::complex<real_type> complex_type;
 
@@ -201,59 +115,49 @@ class FasterFFT3
             delete [] w;
         }
 
-        void apply(complex_type * z, unsigned n)
+        void apply_nonrec(complex_type * z, unsigned n)
         {
-            complex_type temp[n];
+            unsigned count = 1;
+            unsigned stride = n;
 
-            unsigned num_ffts = n;
-            unsigned fft_size = 1;
-
-
-            while (fft_size < n)
+            while (count <= n)
             {
-                num_ffts /= 2;
-                fft_size *= 2;
+                count  *= 2;
+                stride /= 2;
 
-                std::cout << "FFT loop: num_ffts = " << num_ffts << ", fft_size = " << fft_size << std::endl;
-
-                //unsigned substride = fft_size;
-
-                // We perform 'num_ffts' sub-ffts, where we may assume that
-                // the smaller-size FFTs have been completed (including reshuffling).
-
-                for (unsigned fi = 0; fi < num_ffts; ++fi)
+                // Walk over the FFTs at this level
+                for (unsigned offset = 0; offset < stride; ++offset)
                 {
-                    std::cout << "    fft #" << fi << std::endl;
+                    // Combine the result of the two sub-FFTs.
 
-                    for (unsigned i = 0; i < fft_size / 2; ++i)
+                    // First, allocate temp[] working space.
+
+                    complex_type temp[count];
+
+                    // Calculate temp[] values as sum/difference of sub-FFT values.
+
+                    for (unsigned i = 0; i < count / 2; ++i)
                     {
-                        unsigned S1 = fi + 2 * i;
-                        unsigned S2 = 0;
-                        unsigned D1 = 0;
-                        unsigned D2 = 0;
-                        printf("        (%u, %u) -> (%u, %u)\n", S1, S2, D1, D2);
+                        assert(i * stride < nn);
+
+                        const complex_type term  = w[i * stride] * z[offset + stride * (2 * i + 1)];
+
+                        temp[i            ] = z[offset + stride * 2 * i] + term;
+                        temp[i + count / 2] = z[offset + stride * 2 * i] - term;
+
+                        // Note that we can undo the scaling by dividing the 'temp' values by 2, here,
+                        // in case of a forward FFT.
                     }
 
-                    for (unsigned i = 0; i < fft_size / 2; ++i)
+                    // Rearrange the temp[] entries into the z[] array.
+                    // This is the 'butterfly' step.
+
+                    for (unsigned i = 0; i < count; ++i)
                     {
-#if 0
-                        assert(i * fft_size < nn);
-
-                        const complex_type term  = w[i * fft_size] * z[(2 * i + 1)];
-
-                        assert(i < n);
-                        assert((i + fft_size / 2) < n);
-
-                        temp[i               ] = z[2 * i + fi] + term;
-                        temp[i + fft_size / 2] = z[2 * i + fi] - term;
-#endif
+                        z[offset + i * stride] = temp[i];
                     }
 
-                }
-
-                for (unsigned i = 0; i < n; ++i)
-                {
-                    z[i] = temp[i];
+                    // All done.
                 }
             }
         }
@@ -339,26 +243,35 @@ void test_faster_fft2(unsigned n, unsigned rep)
 template <typename real_type>
 void test_correctness_faster2_fft()
 {
-    // Fourier[Prime[Range[5, 12]] + I * Prime[Range[13, 20]], FourierParameters -> {1, -1}]
+    // data = Prime[10 + Range[16]] + I * Prime[20 + Range[16]];
+    // Fourier[data, FourierParameters -> {1, -1}]
 
     typedef std::complex<real_type> complex_type;
 
-    complex_type x[8] = {
-        {11, 41},
-        {13, 43},
-        {17, 47},
-        {19, 53},
-        {23, 59},
-        {29, 61},
-        {31, 67},
-        {37, 71}
+    complex_type x[16] = {
+        { 31,  73},
+        { 37,  79},
+        { 41,  83},
+        { 43,  89},
+        { 47,  97},
+        { 53, 101},
+        { 59, 103},
+        { 61, 107},
+        { 67, 109},
+        { 71, 113},
+        { 73, 127},
+        { 79, 131},
+        { 83, 137},
+        { 89, 139},
+        { 97, 149},
+        {101, 151}
     };
 
-    FasterFFT2<real_type> fft(8);
+    FasterFFT2<real_type> fft(16);
 
-    fft.apply(x, 8);
+    fft.apply_nonrec(x, 16);
 
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < 16; ++i)
     {
         std::cout << i << " " << x[i] << std::endl;
     }
@@ -366,8 +279,29 @@ void test_correctness_faster2_fft()
 
 int main()
 {
-    test_correctness_faster2_fft<float>();
-    //test_pow2_fft<float>(1024, 1001);
+    test_correctness_faster2_fft<double>();
+    //test_pow2_f ft<float>(1024, 1001);
     //test_faster_fft2<float>(1024, 1001);
     return 0;
 }
+
+// =============== 16
+//
+// 0 2 8
+// 1 2 8
+// 2 2 8
+// 3 2 8
+// 4 2 8
+// 5 2 8
+// 6 2 8
+// 7 2 8
+//
+// 0 4 4
+// 1 4 4
+// 2 4 4
+// 3 4 4
+//
+// 0 8 2
+// 1 8 2
+//
+// 0 16 1
