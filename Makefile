@@ -7,7 +7,7 @@ default : test_fft test_fft_performance
 
 test_fft : test_fft.cc
 
-test_fft_performance : test_fft_performance.cc
+test_fft_performance : test_fft_performance.cc MyFFT.h
 
 clean :
 	$(RM) test_fft test_fft_performance
