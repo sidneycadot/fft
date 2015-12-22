@@ -41,7 +41,7 @@ class MyFFT_CosineLUT
             // ...
             // Repeat until we calculate the single n-element FFT.
 
-            complex_type z_next[n]; // storage for FFT results.
+            complex_type z_next[n]; // Storage for FFT results.
 
             unsigned half_size = 1;
             unsigned fft_count = n / 2;
@@ -78,7 +78,7 @@ class MyFFT_CosineLUT
         static const unsigned n_div_2 = n / 2;
         static const unsigned n_div_4 = n / 4;
 
-        real_type cosine_table[n_div_4]; // cosine values
+        real_type cosine_table[n_div_4]; // Cosine values.
 
         complex_type twiddle(unsigned i) const
         {

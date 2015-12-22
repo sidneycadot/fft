@@ -40,7 +40,7 @@ class MyFFT
             // ...
             // Repeat until we calculate the single n-element FFT.
 
-            complex_type z_next[n]; // storage for FFT results.
+            complex_type z_next[n]; // Storage for FFT results.
 
             unsigned half_size = 1;
             unsigned fft_count = n / 2;
@@ -74,7 +74,7 @@ class MyFFT
 
     private:
 
-        complex_type w[n / 2]; // twiddle factors
+        complex_type w[n / 2]; // Twiddle factors.
 };
 
 #endif // MyFFT_h
