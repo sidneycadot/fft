@@ -64,6 +64,7 @@ void test_performance(unsigned num_repeats)
     typedef std::complex<real_type> complex_type;
 
     MyFFT<real_type, n> fft;
+    MyFFT<real_type, 4> fft2;
 
     complex_type * x = new complex_type[num_repeats * n];
 

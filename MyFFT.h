@@ -8,21 +8,22 @@
 
 #include <complex>
 #include <algorithm>
-#include <vector>
 
-template <typename real_type, unsigned n> // n must be power of two.
+template <typename real_type, unsigned n>
 class MyFFT
 {
+    // Note: MyFFT<real_type, n> will only work if n is a power of two.
+
     typedef std::complex<real_type> complex_type;
 
     public:
 
-        MyFFT() : w(n / 2) // constructor
+        MyFFT() // constructor
         {
-            // Pre-calculate array of twiddle factors.
+            // Pre-calculate the twiddle factors.
             // Only values in range [0, pi) are needed.
 
-            for (unsigned i = 0; i < w.size(); ++i)
+            for (unsigned i = 0; i < n / 2; ++i)
             {
                 const real_type turn = -2.0 * M_PI * i / n;
                 w[i] = std::polar(real_type(1), turn);
@@ -31,19 +32,20 @@ class MyFFT
 
         void operator()(complex_type * z) const // perform n-point FFT
         {
-            complex_type znext[n]; // storage for FFT result.
-
             // The FFT of a single number is the number itself.
-            // First, we calculate 2-element FFTs by combining two 1-element FFTs.
-            // Next, we calculate 4-element FFTs by combining two 2-element FFTs.
-            // Next, we calculate 8-element FFTs by combining two 4-element FFTs.
+            //
+            // First, we calculate (n/2) 2-element FFTs by combining two 1-element FFTs.
+            // Next,  we calculate (n/4) 4-element FFTs by combining two 2-element FFTs.
+            // Next,  we calculate (n/8) 8-element FFTs by combining two 4-element FFTs.
             // ...
-            // Repeat until we calculate the n-element FFTs.
+            // Repeat until we calculate the single n-element FFT.
+
+            complex_type z_next[n]; // storage for FFT results.
 
             unsigned half_size = 1;
             unsigned fft_count = n;
 
-            while (fft_count != 1)
+            while (fft_count > 1)
             {
                 fft_count /= 2;
 
@@ -60,12 +62,12 @@ class MyFFT
 
                         const complex_type term = w[fft_count * k] * odd;
 
-                        znext[i + fft_count * (k            )] = even + term;
-                        znext[i + fft_count * (k + half_size)] = even - term;
+                        z_next[i + fft_count * (k            )] = even + term;
+                        z_next[i + fft_count * (k + half_size)] = even - term;
                     }
                 }
 
-                std::copy(znext, znext + n, z);
+                std::copy(z_next, z_next + n, z); // copy z_next to z.
 
                 half_size *= 2;
             }
@@ -73,7 +75,7 @@ class MyFFT
 
     private:
 
-        std::vector<complex_type> w; // twiddle factors
+        complex_type w[n / 2]; // twiddle factors
 };
 
 #endif // MyFFT_h
