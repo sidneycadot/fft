@@ -11,6 +11,7 @@
 #include <sys/time.h>
 
 #include "MyFFT.h"
+#include "MyFFT_CosineLUT.h"
 
 double gettime()
 {
@@ -64,7 +65,6 @@ void test_performance(unsigned num_repeats)
     typedef std::complex<real_type> complex_type;
 
     MyFFT<real_type, n> fft;
-    MyFFT<real_type, 4> fft2;
 
     complex_type * x = new complex_type[num_repeats * n];
 
@@ -97,7 +97,7 @@ void test_performance(unsigned num_repeats)
 
 int main()
 {
-    test_correctness<double>();
+    test_correctness<float>();
     //test_performance<float, 1024>(1001);
     return 0;
 }

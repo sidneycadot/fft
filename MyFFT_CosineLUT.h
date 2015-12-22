@@ -1,32 +1,33 @@
 
-/////////////
-// MyFFT.h //
-/////////////
+///////////////////////
+// MyFFT_CosineLUT.h //
+///////////////////////
 
-#ifndef MyFFT_h
-#define MyFFT_h
+#ifndef MyFFT_CosineLUT_h
+#define MyFFT_CosineLUT_h
 
 #include <complex>
 #include <algorithm>
+#include <cmath>
 
 template <typename real_type, unsigned n>
-class MyFFT
+class MyFFT_CosineLUT
 {
-    static_assert((n & (n - 1)) == 0, "MyFFT<real_type, n> will only work if n is zero or a power of two.");
+    static_assert((n & (n - 1)) == 0, "MyFFT_CosineLUT<real_type, n> will only work if n is zero or a power of two.");
 
     typedef std::complex<real_type> complex_type;
 
     public:
 
-        MyFFT() // Constructor.
+        MyFFT_CosineLUT() // Constructor.
         {
-            // Pre-calculate the twiddle factors.
-            // Only values in range [0, pi) are needed.
+            // Pre-calculate cosine table for twiddle factors.
+            // Only values in range [0, pi/2) are needed.
 
-            for (unsigned i = 0; i < n / 2; ++i)
+            for (unsigned i = 0; i < n / 4; ++i)
             {
-                const real_type turn = -2.0 * M_PI * i / n;
-                w[i] = std::polar(real_type(1), turn);
+                const real_type turn = 2.0 * M_PI * i / n;
+                cosine_table[i] = cos(turn);
             }
         }
 
@@ -58,7 +59,7 @@ class MyFFT
                         const complex_type even = z[i + fft_count * (2 * k + 0)];
                         const complex_type odd  = z[i + fft_count * (2 * k + 1)];
 
-                        const complex_type term = w[fft_count * k] * odd;
+                        const complex_type term = twiddle(fft_count * k) * odd;
 
                         z_next[i + fft_count * (k            )] = (even + term);
                         z_next[i + fft_count * (k + half_size)] = (even - term);
@@ -74,7 +75,36 @@ class MyFFT
 
     private:
 
-        complex_type w[n / 2]; // twiddle factors
+        static const unsigned n_div_2 = n / 2;
+        static const unsigned n_div_4 = n / 4;
+
+        real_type cosine_table[n_div_4]; // cosine values
+
+        complex_type twiddle(unsigned i) const
+        {
+            int sin_index = i % n_div_2 - n_div_4;
+            if (sin_index < 0) // abs
+            {
+                sin_index = -sin_index;
+            }
+            real_type sinval = (sin_index == n_div_4) ? 0.0 : cosine_table[sin_index];
+            if ((i & n_div_2) == 0)
+            {
+                // Correct sign of sine.
+                // Note that we invert the sign of the sign (for the forward FFT).
+                sinval = -sinval;
+            }
+
+            int cos_index = n_div_4 - sin_index;
+            real_type cosval = (cos_index == n_div_4) ? 0.0 : cosine_table[cos_index];
+            if ((i + n_div_4) & n_div_2)
+            {
+                // Correct sign of cosine.
+                cosval = -cosval;
+            }
+
+            return complex_type(cosval, sinval);
+        }
 };
 
-#endif // MyFFT_h
+#endif // MyFFT_CosineLUT_h
