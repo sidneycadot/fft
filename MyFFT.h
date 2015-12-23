@@ -23,7 +23,7 @@ class MyFFT
             // Pre-calculate the twiddle factors.
             // Only values in range [0, pi) are needed.
 
-            for (unsigned i = 0; i < n / 2; ++i)
+            for (unsigned i = 0; i < n_div_2; ++i)
             {
                 const real_type turn = -2.0 * M_PI * i / n;
                 w[i] = std::polar(real_type(1), turn);
@@ -43,7 +43,7 @@ class MyFFT
             complex_type z_next[n]; // Storage for FFT results.
 
             unsigned half_size = 1;
-            unsigned fft_count = n / 2;
+            unsigned fft_count = n_div_2;
 
             while (fft_count != 0)
             {
@@ -60,8 +60,8 @@ class MyFFT
 
                         const complex_type term = w[fft_count * k] * odd;
 
-                        z_next[i + fft_count * (k            )] = (even + term);
-                        z_next[i + fft_count * (k + half_size)] = (even - term);
+                        z_next[i + fft_count * k          ] = (even + term);
+                        z_next[i + fft_count * k + n_div_2] = (even - term);
                     }
                 }
 
@@ -74,7 +74,9 @@ class MyFFT
 
     private:
 
-        complex_type w[n / 2]; // Twiddle factors.
+        static const unsigned n_div_2 = n / 2;
+
+        complex_type w[n_div_2]; // Twiddle factors.
 };
 
 #endif // MyFFT_h

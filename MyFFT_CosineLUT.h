@@ -24,7 +24,7 @@ class MyFFT_CosineLUT
             // Pre-calculate cosine table for twiddle factors.
             // Only values in range [0, pi/2) are needed.
 
-            for (unsigned i = 0; i < n / 4; ++i)
+            for (unsigned i = 0; i < n_div_4; ++i)
             {
                 const real_type turn = 2.0 * M_PI * i / n;
                 cosine_table[i] = cos(turn);
@@ -44,7 +44,7 @@ class MyFFT_CosineLUT
             complex_type z_next[n]; // Storage for FFT results.
 
             unsigned half_size = 1;
-            unsigned fft_count = n / 2;
+            unsigned fft_count = n_div_2;
 
             while (fft_count != 0)
             {
@@ -61,8 +61,8 @@ class MyFFT_CosineLUT
 
                         const complex_type term = twiddle(fft_count * k) * odd;
 
-                        z_next[i + fft_count * (k            )] = (even + term);
-                        z_next[i + fft_count * (k + half_size)] = (even - term);
+                        z_next[i + fft_count * k          ] = (even + term);
+                        z_next[i + fft_count * k + n_div_2] = (even - term);
                     }
                 }
 

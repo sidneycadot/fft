@@ -12,6 +12,7 @@
 
 #include "MyFFT.h"
 #include "MyFFT_CosineLUT.h"
+#include "MyFFT_LowLevel.h"
 
 double gettime()
 {
@@ -48,7 +49,7 @@ void test_correctness()
         {101, 151}
     };
 
-    MyFFT<real_type, 16> fft;
+    MyFFT_LowLevel<real_type, 16> fft;
 
     fft(x);
 
@@ -64,7 +65,7 @@ void test_performance(unsigned num_repeats)
     assert(num_repeats % 2 == 1);
     typedef std::complex<real_type> complex_type;
 
-    MyFFT<real_type, n> fft;
+    MyFFT_LowLevel<real_type, n> fft;
 
     complex_type * x = new complex_type[num_repeats * n];
 
@@ -98,6 +99,6 @@ void test_performance(unsigned num_repeats)
 int main()
 {
     test_correctness<float>();
-    //test_performance<float, 1024>(1001);
+    test_performance<float, 1024>(1001);
     return 0;
 }
