@@ -49,12 +49,13 @@ void test_correctness()
         {101, 151}
     };
 
-    MyFFT_LowLevel<real_type, 16> fft;
+    MyFFT<real_type, 16> fft;
 
     fft(x);
 
     for (int i = 0; i < 16; ++i)
     {
+        std::cout << std::fixed;
         std::cout << i << " " << x[i] << std::endl;
     }
 }
@@ -72,8 +73,6 @@ void test_performance(unsigned num_repeats)
     std::random_device rd;
     std::mt19937 gen(rd());
  
-    // values near the mean are the most likely
-    // standard deviation affects the dispersion of generated values from the mean
     std::normal_distribution<real_type> d(0, 1);
 
     double durations[num_repeats];

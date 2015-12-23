@@ -58,6 +58,8 @@ class MyFFT_LowLevel
 
                     real_type * zp = (real_type *)z + 2 * i;
 
+                    unsigned tw = 0;
+
                     for (unsigned k = 0; k < half_size; ++k)
                     {
                         const real_type even_re = zp[0];
@@ -68,9 +70,12 @@ class MyFFT_LowLevel
                         const real_type odd_im = zp[1];
                         zp += 2 * fft_count;
 
-                        real_type twiddle_re;
-                        real_type twiddle_im;
-                        twiddle_func(k * fft_count, &twiddle_re, &twiddle_im);
+                        const unsigned sin_index = (tw <  n_div_4) ? (n_div_4 - tw) : (tw - n_div_4);
+                        const unsigned cos_index = n_div_4 - sin_index;
+
+                        // Invert the sign of the sign (for the forward FFT).
+                        const real_type twiddle_im = (sin_index == n_div_4) ? 0.0 : -cosine_table[sin_index];
+                        const real_type twiddle_re = (cos_index == n_div_4) ? 0.0 : (tw < n_div_4) ? +cosine_table[cos_index] : -cosine_table[cos_index];
 
                         const real_type term_re = twiddle_re * odd_re - twiddle_im * odd_im;
                         const real_type term_im = twiddle_re * odd_im + twiddle_im * odd_re;
@@ -79,8 +84,11 @@ class MyFFT_LowLevel
                         z_next_hi[0] = (even_re - term_re);
                         z_next_lo[1] = (even_im + term_im);
                         z_next_hi[1] = (even_im - term_im);
+
                         z_next_lo += (2 * fft_count);
                         z_next_hi += (2 * fft_count);
+
+                        tw += fft_count;
                     }
                 }
 
@@ -97,27 +105,6 @@ class MyFFT_LowLevel
         static const unsigned n_div_4 = n / 4;
 
         real_type cosine_table[n_div_4]; // Cosine values.
-
-        void twiddle_func(unsigned i, real_type * re, real_type * im) const
-        {
-            assert(i < n_div_2);
-
-            const unsigned sin_index = (i <  n_div_4) ? (n_div_4 - i) : (i - n_div_4);
-            const unsigned cos_index = n_div_4 - sin_index;
-
-            // Invert the sign of the sign (for the forward FFT).
-            real_type sinval = (sin_index == n_div_4) ? 0.0 : -cosine_table[sin_index];
-
-            real_type cosval = (cos_index == n_div_4) ? 0.0 : +cosine_table[cos_index];
-            if ((i + n_div_4) & n_div_2)
-            {
-                // Correct sign of cosine.
-                cosval = -cosval;
-            }
-
-            *re = cosval;
-            *im = sinval;
-        }
 };
 
 #endif // MyFFT_LowLevel_h
