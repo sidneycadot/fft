@@ -67,7 +67,7 @@ class MyFFT_BitReverse
                 for (unsigned i = 0; i != fft_count; ++i)
                 {
                     // Combine the result of the two sub-FFTs.
-
+ 
                     for (unsigned k = 0; k != half_size; ++k)
                     {
                         const complex_type even = z[idx0];
