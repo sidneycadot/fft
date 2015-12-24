@@ -32,6 +32,20 @@ class MyFFT_BitReverse
 
         void operator()(complex_type * z) const // Perform an n-point FFT.
         {
+            // Perform a bit-reversal permutation.
+            // This makes it possible to do an in-place FFT because the pairs
+            // of elements being combined in the inner loop below end up in the same
+            // positions (leaving all other elements undisturbed).
+
+            for (unsigned i = 0; i < n; ++i)
+            {
+                const unsigned j = bit_reverse(i);
+                if (i < j)
+                {
+                    std::swap(z[i], z[j]);
+                }
+            }
+ 
             // The FFT of a single complex number is the number itself.
             //
             // First, we calculate (n/2) 2-element FFTs by combining two 1-element FFTs.
@@ -39,17 +53,6 @@ class MyFFT_BitReverse
             // Next,  we calculate (n/8) 8-element FFTs by combining two 4-element FFTs.
             // ...
             // Repeat until we calculate the single n-element FFT.
-
-            {
-                // permute the vector.
-
-                complex_type z_orig[n];
-                std::copy(z, z + n, z_orig); // Copy z to z_orig.
-                for (unsigned i = 0; i < n; ++i)
-                {
-                    z[i] = z_orig[bit_reverse(i)];
-                }
-            }
 
             unsigned fft_count = n_div_2;
             unsigned half_size = 1;
