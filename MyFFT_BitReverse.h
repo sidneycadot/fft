@@ -1,24 +1,24 @@
 
-/////////////
-// MyFFT.h //
-/////////////
+////////////////////////
+// MyFFT_BitReverse.h //
+////////////////////////
 
-#ifndef MyFFT_h
-#define MyFFT_h
+#ifndef MyFFT_BitReverse_h
+#define MyFFT_BitReverse_h
 
 #include <complex>
 #include <algorithm>
 
 template <typename real_type, unsigned n>
-class MyFFT
+class MyFFT_BitReverse
 {
-    static_assert((n & (n - 1)) == 0, "MyFFT<real_type, n> will only work if n is zero or a power of two.");
+    static_assert((n & (n - 1)) == 0, "MyFFT_BitReverse<real_type, n> will only work if n is zero or a power of two.");
 
     typedef std::complex<real_type> complex_type;
 
     public:
 
-        MyFFT() // Constructor.
+        MyFFT_BitReverse() // Constructor.
         {
             // Pre-calculate the twiddle factors.
             // Only values in range [0, pi) are needed.
@@ -41,43 +41,49 @@ class MyFFT
             // Repeat until we calculate the single n-element FFT.
 
             {
-                complex_type zc[n];      // Storage for FFT results.
-                std::copy(z, z + n, zc); // Copy z to zc.
+                // permute the vector.
+
+                complex_type z_orig[n];
+                std::copy(z, z + n, z_orig); // Copy z to z_orig.
                 for (unsigned i = 0; i < n; ++i)
                 {
-                    z[i] = zc[bit_reverse(i)];
-                    std::cout << "@@@ " << i << " " << bit_reverse(i) << std::endl;
+                    z[i] = z_orig[bit_reverse(i)];
                 }
             }
 
-            unsigned half_size = 1;
             unsigned fft_count = n_div_2;
+            unsigned half_size = 1;
 
             while (fft_count != 0)
             {
                 // Perform the 'fft_count' FFTs at this level.
 
-                for (unsigned i = 0; i < fft_count; ++i)
+                unsigned idx0 = 0;
+                unsigned idx1 = half_size;
+
+                for (unsigned i = 0; i != fft_count; ++i)
                 {
                     // Combine the result of the two sub-FFTs.
 
-                    for (unsigned k = 0; k < half_size; ++k)
+                    for (unsigned k = 0; k != half_size; ++k)
                     {
-                        //const unsigned ie = (i * half_size + k) * 2 + 0;
-                        //const unsigned io = (i * half_size + k) * 2 + 1;
-                        //std::cout << "@@@ " << fft_count << " " << i << " " << k << " " << ie << " " << io << std::endl;
-
-                        const complex_type even = z[(i * half_size + k) * 2 + 0];
-                        const complex_type odd  = z[(i * half_size + k) * 2 + half_size];
+                        const complex_type even = z[idx0];
+                        const complex_type odd  = z[idx1];
 
                         const complex_type term = w[fft_count * k] * odd;
 
-                        z[(i * half_size + k) * 2 + 0] = (even + term);
-                        z[(i * half_size + k) * 2 + 1] = (even - term);
+                        z[idx0] = (even + term);
+                        z[idx1] = (even - term);
+
+                        ++idx0;
+                        ++idx1;
                     }
+
+                    idx0 += half_size;
+                    idx1 += half_size;
                 }
 
-                fft_count /= 2;`
+                fft_count /= 2;
                 half_size *= 2;
             }
         }
@@ -95,9 +101,10 @@ class MyFFT
             }
             return r;
         }
+
         static const unsigned n_div_2 = n / 2;
 
         complex_type w[n_div_2]; // Twiddle factors.
 };
 
-#endif // MyFFT_h
+#endif // MyFFT_BitReverse_h

@@ -6,12 +6,14 @@
 #include <cassert>
 #include <complex>
 #include <iostream>
+#include <iomanip>
 #include <random>
 
 #include <sys/time.h>
 
 #include "MyFFT.h"
 #include "MyFFT_CosineLUT.h"
+#include "MyFFT_BitReverse.h"
 #include "MyFFT_LowLevel.h"
 
 double gettime()
@@ -49,14 +51,27 @@ void test_correctness()
         {101, 151}
     };
 
-    MyFFT<real_type, 16> fft;
+    complex_type x_ref[16];
+    std::copy(std::begin(x), std::end(x), x_ref);
 
+    MyFFT<real_type, 16> fft_ref;
+    MyFFT_BitReverse<real_type, 16> fft;
+
+    fft_ref(x_ref);
     fft(x);
 
+    std::cout << std::fixed;
     for (int i = 0; i < 16; ++i)
     {
-        std::cout << std::fixed;
-        std::cout << i << " " << x[i] << std::endl;
+        std::cout << std::setw(8) << i
+                  << std::setw(16) << std::real(x[i]) << std::setw(16) << std::imag(x[i]);
+
+        if (std::abs(x[i] - x_ref[i]) > 1e-10)
+        {
+            std::cout << " incorrect; should be" << std::setw(16) << std::real(x_ref[i]) << std::setw(16) << std::imag(x_ref[i]);
+        }
+
+        std::cout << std::endl;
     }
 }
 
@@ -66,7 +81,7 @@ void test_performance(unsigned num_repeats)
     assert(num_repeats % 2 == 1);
     typedef std::complex<real_type> complex_type;
 
-    MyFFT_LowLevel<real_type, n> fft;
+    MyFFT<real_type, n> fft;
 
     complex_type * x = new complex_type[num_repeats * n];
 
@@ -97,7 +112,13 @@ void test_performance(unsigned num_repeats)
 
 int main()
 {
-    test_correctness<float>();
-    test_performance<float, 1024>(1001);
+    test_correctness<double>();
+    //test_performance<float, 1024>(1001);
     return 0;
 }
+
+
+//       0       152.000000      324.000000
+//       1       -20.000000       -4.000000
+//       2        -8.000000      -12.000000
+//       3         0.000000      -16.000000
